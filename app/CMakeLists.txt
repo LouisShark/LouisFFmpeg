@@ -5,6 +5,7 @@
 
 cmake_minimum_required(VERSION 3.4.1)
 include_directories(libs/include)
+set(DIR ${CMAKE_SOURCE_DIR}/libs)
 # Creates and names a library, sets it as either STATIC
 # or SHARED, and provides the relative paths to its source code.
 # You can define multiple libraries, and CMake builds them for you.
@@ -31,7 +32,6 @@ find_library( # Sets the name of the path variable.
               # Specifies the name of the NDK library that
               # you want CMake to locate.
               log )
-set(DIR ../../../../libs)
 # Specifies libraries CMake should link to your target library. You
 # can link multiple libraries, such as libraries you define in this
 # build script, prebuilt third-party libraries, or system libraries.
@@ -95,4 +95,5 @@ target_link_libraries( # Specifies the target library.
                        avfilter-5
                        # Links the target library to the log library
                        # included in the NDK.
+                       android
                        ${log-lib} )
