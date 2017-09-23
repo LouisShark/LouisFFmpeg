@@ -26,7 +26,6 @@ public class MainActivity extends AppCompatActivity {
                 android.R.layout.simple_list_item_1,
                 android.R.id.text1, videoArray);
         sp_video.setAdapter(adapter);
-
     }
 
 
@@ -34,5 +33,11 @@ public class MainActivity extends AppCompatActivity {
         String video = sp_video.getSelectedItem().toString();
         String input = new File(Environment.getExternalStorageDirectory(), video).getAbsolutePath();
         videoView.play(input);
+    }
+
+    public void start_music(View view) {
+        String input = new File(Environment.getExternalStorageDirectory(),"input.mp3").getAbsolutePath();
+        String output = new File(Environment.getExternalStorageDirectory(),"output.pcm").getAbsolutePath();
+        videoView.sound(input,output);
     }
 }

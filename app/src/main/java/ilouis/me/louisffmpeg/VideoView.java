@@ -2,6 +2,9 @@ package ilouis.me.louisffmpeg;
 
 import android.content.Context;
 import android.graphics.PixelFormat;
+import android.media.AudioFormat;
+import android.media.AudioManager;
+import android.media.AudioTrack;
 import android.util.AttributeSet;
 import android.view.Surface;
 import android.view.SurfaceHolder;
@@ -61,5 +64,28 @@ public class VideoView extends SurfaceView {
     }
 
     public native void render(String inputStr, Surface surface);
+    public native void sound(String input, String output);
 
+    private AudioTrack audioTrack;
+    //c来调用这个方法
+    public void createAudio(int sampleRateInHz, int nb_channels) {
+        int channelConfig;
+        if (nb_channels == 1) {
+            channelConfig = AudioFormat.CHANNEL_OUT_MONO;
+        } else if (nb_channels == 2) {
+            channelConfig = AudioFormat.CHANNEL_OUT_STEREO;
+        } else {
+            channelConfig = AudioFormat.CHANNEL_OUT_MONO;
+        }
+        int bufferSize = AudioTrack.getMinBufferSize(sampleRateInHz, channelConfig, AudioFormat.ENCODING_PCM_16BIT);
+        audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC, sampleRateInHz, channelConfig, AudioFormat.ENCODING_PCM_16BIT, bufferSize, AudioTrack.MODE_STREAM);
+        audioTrack.play();
+    }
+
+    //C传入音频数据
+    public synchronized void playTrack(byte[] buffer, int length) {
+        if (audioTrack != null && audioTrack.getPlayState() == AudioTrack.PLAYSTATE_PLAYING) {
+            audioTrack.write(buffer, 0, length);
+        }
+    }
 }

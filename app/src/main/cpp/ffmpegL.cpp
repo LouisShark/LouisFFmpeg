@@ -210,10 +210,97 @@ JNIEXPORT void JNICALL startPlaying(JNIEnv *env, jobject jobj, jstring input_str
     env->ReleaseStringUTFChars(input_str, input_path);
 }
 
+JNIEXPORT void JNICALL startMusic(JNIEnv *env, jobject jobj, jstring input_str, jstring output_str) {
+    const char *input_path = env->GetStringUTFChars(input_str,NULL);
+    const char *output_path = env->GetStringUTFChars(output_str,NULL);
+    av_register_all();
+
+    AVFormatContext *pFormatCtx = avformat_alloc_context();
+    if (avformat_open_input(&pFormatCtx, input_path, NULL, NULL) != 0) {
+        LOGE("打开文件失败");
+    }
+    if (avformat_find_stream_info(pFormatCtx, NULL) < 0) {
+        LOGE("获取视频信息失败");
+        return;
+    }
+    int audio_stream_index = -1;
+    for (int i = 0; i < pFormatCtx->nb_streams; ++i) {
+        if (pFormatCtx->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
+            LOGE("找到音频 id %d", pFormatCtx->streams[i]->codec->codec_type);
+            audio_stream_index = i;
+            break;
+        }
+    }
+    //mp3解码器
+    AVCodecContext *pCodeCtx = pFormatCtx->streams[audio_stream_index]->codec;
+    LOGE("获取音频解码器上下文 %p", pCodeCtx);
+    AVCodec *pCodec = avcodec_find_decoder(pCodeCtx->codec_id);
+
+    if (avcodec_open2(pCodeCtx, pCodec, NULL) <0) {
+        return;
+    }
+    AVPacket *packet = (AVPacket *) av_malloc(sizeof(AVPacket));
+    AVFrame *frame;
+    frame = av_frame_alloc();
+
+    SwrContext *swrContext = swr_alloc();
+
+    int length = 0;
+    int got_frame;
+    uint8_t *out_buffer = (uint8_t *) av_malloc(44100 * 2);
+
+    uint64_t out_ch_layout = AV_CH_LAYOUT_STEREO;
+
+    //输出采样位数 16位
+    enum AVSampleFormat out_format = AV_SAMPLE_FMT_S16;
+    int out_sample_rate = pCodeCtx->sample_rate;
+
+
+    swr_alloc_set_opts(swrContext, out_ch_layout, out_format, out_sample_rate, pCodeCtx->channel_layout, pCodeCtx->sample_fmt, pCodeCtx->sample_rate, 0, NULL);
+    swr_init(swrContext);
+    //获取通道数 2
+    int out_channel_nb = av_get_channel_layout_nb_channels(AV_CH_LAYOUT_STEREO);
+    //反射得到createAudio方法
+    jclass player = env->GetObjectClass(jobj);
+    jmethodID  createAudioID = env->GetMethodID(player, "createAudio", "(II)V");
+    env->CallVoidMethod(jobj, createAudioID, 44100, out_channel_nb);
+    jmethodID audio_write = env->GetMethodID(player, "playTrack", "([BI)V");
+
+    int frame_count;
+    while (av_read_frame(pFormatCtx, packet) >= 0) {
+        if (packet->stream_index == audio_stream_index) {
+            avcodec_decode_audio4(pCodeCtx, frame, &got_frame, packet);
+
+            if (got_frame) {
+                LOGE("解码");
+
+                swr_convert(swrContext, &out_buffer, 44100 *2 , (const uint8_t **) frame->data, frame->nb_samples);
+                //缓冲区大小
+                int size = av_samples_get_buffer_size(NULL, out_channel_nb, frame->nb_samples, AV_SAMPLE_FMT_S16, 1);
+
+                jbyteArray audio_sample_array = env->NewByteArray(size);
+                env->SetByteArrayRegion(audio_sample_array, 0, size, (const jbyte *) out_buffer);
+                env->CallVoidMethod(jobj, audio_write, audio_sample_array, size);
+                env->DeleteLocalRef(audio_sample_array);
+            }
+        }
+    }
+    av_frame_free(&frame);
+    swr_free(&swrContext);
+    avcodec_close(pCodeCtx);
+    avformat_close_input(&pFormatCtx);
+
+    env->ReleaseStringUTFChars(input_str, input_path);
+    env->ReleaseStringUTFChars(output_str, output_path);
+}
+
 static const JNINativeMethod gMethods[] = {
         {
                 "render","(Ljava/lang/String;Landroid/view/Surface;)V",(void*)startPlaying
         },
+        {
+                "sound","(Ljava/lang/String;Ljava/lang/String;)V",(void*)startMusic
+        }
 
 };
 
