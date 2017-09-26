@@ -13,12 +13,14 @@ public class MainActivity extends AppCompatActivity {
 
     VideoView videoView;
     private Spinner sp_video;
+    private boolean isClick = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        videoView= (VideoView) findViewById(R.id.surface);
+        videoView = (VideoView) findViewById(R.id.surface);
         sp_video = (Spinner) findViewById(R.id.sp_video);
         //多种格式的视频列表
         String[] videoArray = getResources().getStringArray(R.array.video_list);
@@ -36,12 +38,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void start_music(View view) {
-        String input = new File(Environment.getExternalStorageDirectory(),"input.mp3").getAbsolutePath();
-        String output = new File(Environment.getExternalStorageDirectory(),"output.pcm").getAbsolutePath();
-        videoView.sound(input,output);
+        String input = new File(Environment.getExternalStorageDirectory(), "input.mp3").getAbsolutePath();
+        String output = new File(Environment.getExternalStorageDirectory(), "output.pcm").getAbsolutePath();
+        videoView.sound(input, output);
     }
 
     public void opelStart(View view) {
-        videoView.sound1();
+        if (isClick) {
+            isClick = !isClick;
+            videoView.stop();
+        } else {
+            isClick = !isClick;
+            videoView.sound1();
+        }
     }
 }

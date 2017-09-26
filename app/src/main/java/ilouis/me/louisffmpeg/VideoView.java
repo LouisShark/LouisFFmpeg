@@ -90,4 +90,5 @@ public class VideoView extends SurfaceView {
     }
 
     public native void sound1();
+    public native void stop();
 }

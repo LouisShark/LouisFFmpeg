@@ -388,7 +388,6 @@ JNIEXPORT void JNICALL startMusic1(JNIEnv *env, jobject jobj) {
     //获取播放状态接口
     (*playItf)->SetPlayState(playItf, SL_PLAYSTATE_PLAYING);
     bg_player_callback(bqPlayerBufferQueue, NULL);
-
 }
 
 
@@ -429,6 +428,9 @@ static const JNINativeMethod gMethods[] = {
         },
         {
                 "sound1","()V",(void*)startMusic1
+        },
+        {
+                "stop","()V",(void*)shutdown
         }
 
 };
