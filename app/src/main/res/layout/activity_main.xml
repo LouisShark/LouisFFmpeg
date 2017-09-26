@@ -32,7 +32,15 @@
         android:onClick="start_music"
         android:text="@string/start_music"
         android:layout_alignParentStart="true"
-        android:layout_alignParentBottom="true"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/opensl"/>
+    <Button
+        android:id="@+id/opensl"
+        android:onClick="opelStart"
+        android:text="用openel se播放音乐"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true" />
 </RelativeLayout>

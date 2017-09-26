@@ -88,4 +88,6 @@ public class VideoView extends SurfaceView {
             audioTrack.write(buffer, 0, length);
         }
     }
+
+    public native void sound1();
 }

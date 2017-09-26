@@ -40,4 +40,8 @@ public class MainActivity extends AppCompatActivity {
         String output = new File(Environment.getExternalStorageDirectory(),"output.pcm").getAbsolutePath();
         videoView.sound(input,output);
     }
+
+    public void opelStart(View view) {
+        videoView.sound1();
+    }
 }

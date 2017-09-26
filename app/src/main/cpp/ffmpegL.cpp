@@ -1,9 +1,12 @@
 #include <jni.h>
 #include <string>
+#include <SLES/OpenSLES.h>
+#include <SLES/OpenSLES_Android.h>
 #include <android/log.h>
 #include <assert.h>
 #include <android/native_window_jni.h>
 #include <unistd.h>
+
 extern "C" {
 #include <libswresample/swresample.h>
 //编码
@@ -12,7 +15,7 @@ extern "C" {
 #include "libavformat/avformat.h"
 //像素处理
 #include "libswscale/swscale.h"
-
+#include "FFMpeg.h"
 #define TAG "LOUIS_LOG"
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
 #define NELEM(x) ((int) (sizeof(x) / sizeof((x)[0])))
@@ -294,12 +297,138 @@ JNIEXPORT void JNICALL startMusic(JNIEnv *env, jobject jobj, jstring input_str, 
     env->ReleaseStringUTFChars(output_str, output_path);
 }
 
+SLObjectItf engineObject;
+SLEngineItf  engineItf;
+SLObjectItf outputMix;
+SLEnvironmentalReverbItf outputMixEnvironmentalReverb = NULL;
+const SLEnvironmentalReverbSettings settings = SL_I3DL2_ENVIRONMENT_PRESET_DEFAULT;
+SLObjectItf player;
+SLPlayItf playItf;
+//缓冲器队列接口
+SLAndroidSimpleBufferQueueItf bqPlayerBufferQueue;
+SLVolumeItf bg_play_volume;
+size_t buffer_size;
+void *buffer;
+
+// 当喇叭播放完声音时回调此方法
+void bg_player_callback(SLAndroidSimpleBufferQueueItf bq, void *context)
+{
+    buffer_size = 0;
+    //assert(NULL == context);
+    getPCM(&buffer, &buffer_size);
+    // for streaming playback, replace this test by logic to find and fill the next buffer
+    if (NULL != buffer && 0 != buffer_size) {
+        SLresult result;
+        // enqueue another buffer
+        result = (*bqPlayerBufferQueue)->Enqueue(bqPlayerBufferQueue, buffer,
+                                                 buffer_size);
+        // the most likely other result is SL_RESULT_BUFFER_INSUFFICIENT,
+        // which for this code example would indicate a programming error
+        assert(SL_RESULT_SUCCESS == result);
+        LOGE("louis  bqPlayerCallback :%d", result);
+    }
+
+}
+
+
+JNIEXPORT void JNICALL startMusic1(JNIEnv *env, jobject jobj) {
+    SLresult sLresult;
+    //初始化一个引擎
+    slCreateEngine(&engineObject, 0, NULL, 0, NULL, NULL);
+    (*engineObject)->Realize(engineObject, SL_BOOLEAN_FALSE);
+
+    //获取到引擎接口
+    (*engineObject)->GetInterface(engineObject, SL_IID_ENGINE, &engineItf);
+    LOGE("引擎地址%p ", engineItf);
+
+    //创建混音器
+    (*engineItf)->CreateOutputMix(engineItf, &outputMix, 0, 0, 0);
+    //实现混音器
+    (*outputMix)->Realize(outputMix, SL_BOOLEAN_FALSE);
+    //实现混音器接口,设置环境混响
+    sLresult = (*outputMix)->GetInterface(outputMix, SL_IID_ENVIRONMENTALREVERB, &outputMixEnvironmentalReverb);
+    if (SL_RESULT_SUCCESS == sLresult) {
+        (*outputMixEnvironmentalReverb)->SetEnvironmentalReverbProperties(outputMixEnvironmentalReverb, &settings);
+    }
+    int rate;
+    int channels;
+    createFFmpeg(&rate, &channels);
+    LOGE("b比特率%d ， channels %d", rate, channels);
+    //配置信息设置
+    SLDataLocator_AndroidBufferQueue android_queue = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE, 2};
+
+    SLDataFormat_PCM pcm = {SL_DATAFORMAT_PCM, 2, SL_SAMPLINGRATE_44_1, SL_PCMSAMPLEFORMAT_FIXED_16, SL_PCMSAMPLEFORMAT_FIXED_16, SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT, SL_BYTEORDER_LITTLEENDIAN};
+
+    //新建一个数据源 将上述配置信息放到这个数据源中
+    SLDataSource slDataSource = {&android_queue, &pcm};
+    //设置混音器
+    SLDataLocator_OutputMix slDataLocator_outputMix = {SL_DATALOCATOR_OUTPUTMIX, outputMix};
+
+    SLDataSink audioSink = {&slDataLocator_outputMix, NULL};
+
+    SLInterfaceID ids[3] = {SL_IID_BUFFERQUEUE, SL_IID_EFFECTSEND, SL_IID_VOLUME};
+    SLboolean req[3] = {SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE, SL_BOOLEAN_TRUE};
+
+
+    //将混音器关联起来 创建播放器
+    (*engineItf)->CreateAudioPlayer(engineItf, &player, &slDataSource, &audioSink, 3, ids, req);
+
+    (*player)->Realize(player, SL_BOOLEAN_FALSE);
+    //创建一个播放器接口
+    (*player)->GetInterface(player, SL_IID_PLAY, &playItf);
+
+    //注册回调缓冲区，获取缓存队列接口
+    (*player)->GetInterface(player, SL_IID_BUFFERQUEUE, &bqPlayerBufferQueue);
+    LOGE("获取缓冲区数据");
+
+    //缓冲接口回调
+    (*bqPlayerBufferQueue)->RegisterCallback(bqPlayerBufferQueue, bg_player_callback, NULL);
+    //获取音量接口
+    (*player)->GetInterface(player, SL_IID_VOLUME, &bg_play_volume);
+    //获取播放状态接口
+    (*playItf)->SetPlayState(playItf, SL_PLAYSTATE_PLAYING);
+    bg_player_callback(bqPlayerBufferQueue, NULL);
+
+}
+
+
+// shut down the native audio system
+void shutdown()
+{
+    // destroy buffer queue audio player object, and invalidate all associated interfaces
+    if (player != NULL) {
+        (*player)->Destroy(player);
+        player = NULL;
+        playItf = NULL;
+        bqPlayerBufferQueue = NULL;
+        bg_play_volume = NULL;
+    }
+
+    // destroy output mix object, and invalidate all associated interfaces
+    if (outputMix != NULL) {
+        (*outputMix)->Destroy(outputMix);
+        outputMix = NULL;
+        outputMixEnvironmentalReverb = NULL;
+    }
+    // destroy engine object, and invalidate all associated interfaces
+    if (engineObject != NULL) {
+        (*engineObject)->Destroy(engineObject);
+        engineObject = NULL;
+        engineItf = NULL;
+    }
+    // 释放FFmpeg解码器相关资源
+    realase();
+}
+
 static const JNINativeMethod gMethods[] = {
         {
                 "render","(Ljava/lang/String;Landroid/view/Surface;)V",(void*)startPlaying
         },
         {
                 "sound","(Ljava/lang/String;Ljava/lang/String;)V",(void*)startMusic
+        },
+        {
+                "sound1","()V",(void*)startMusic1
         }
 
 };
@@ -341,9 +470,6 @@ JNIEXPORT jint JNI_OnLoad(JavaVM* vm, void* reserved)
 
     return JNI_VERSION_1_4;
 }
-
-
-
 
 
 }
