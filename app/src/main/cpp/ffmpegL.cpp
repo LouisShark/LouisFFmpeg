@@ -6,6 +6,8 @@
 #include <assert.h>
 #include <android/native_window_jni.h>
 #include <unistd.h>
+#include "FFmpegAudio.h"
+#include "FFmpegVideo.h"
 
 extern "C" {
 #include <libswresample/swresample.h>
@@ -16,8 +18,7 @@ extern "C" {
 //像素处理
 #include "libswscale/swscale.h"
 #include "FFMpeg.h"
-#define TAG "LOUIS_LOG"
-#define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, TAG, __VA_ARGS__)
+#include "Log.h"
 #define NELEM(x) ((int) (sizeof(x) / sizeof((x)[0])))
 
 //JNIEXPORT void JNICALL
@@ -418,6 +419,104 @@ void shutdown()
     // 释放FFmpeg解码器相关资源
     realase();
 }
+/////////////////////////////////////////////////////////////////音视频同步代码//////////////////////////////////////////////////
+const char *path;
+//缓冲区
+int isPlay = 0;
+
+
+FFmpegVedio *video;
+FFmpegAudio *audio;
+
+void *process(void* args) {
+    LOGE("开启线程%s", path);
+    av_register_all();
+    avformat_network_init();
+    AVFormatContext* pFormatCtx = avformat_alloc_context();
+    //第四个参数是 字典入参出参对象
+    if (avformat_open_input(&pFormatCtx, path, NULL, NULL) != 0) {
+        LOGE("%s", "打开视频输入文件失败");
+    }
+    //获取视频信息
+    if (avformat_find_stream_info(pFormatCtx, NULL) < 0) {
+        LOGE("获取视频信息失败");
+    }
+    int i = 0;
+    for (int i = 0; i < pFormatCtx->nb_streams; ++i) {
+        //获取视频编解码器
+        AVCodecContext* pCodeCtx = pFormatCtx->streams[i]->codec;
+        LOGE("获取视频编解码器上下文%p " , pCodeCtx);
+        AVCodec* codec = avcodec_find_decoder(pCodeCtx->codec_id);
+        avcodec_open2(pCodeCtx, codec, NULL);
+        if (pFormatCtx->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) {
+            LOGE("找到音频id %d", pFormatCtx->streams[i]->codec->codec_type);
+            audio->setCodec(pCodeCtx);
+            //设置时间
+            audio->setTimeBase(pFormatCtx->streams[i]->time_base);
+            audio->index = i;
+        }
+        if (pFormatCtx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+            video->setAvCodecContext(pCodeCtx);
+            video->setTimeBase(pFormatCtx->streams[i]->time_base);
+            LOGE("找到视频id %d", pFormatCtx->streams[i]->codec->codec_type);
+            video->index = i;
+        }
+    }
+    //开始播放
+    video->play(audio);
+    audio->play();
+    isPlay = 1;
+    AVPacket* avPacket = (AVPacket *) av_malloc(sizeof(avPacket));
+    //循环播放直至视频结束
+    //av_read_frame会申请内存
+    while (isPlay && av_read_frame(pFormatCtx, avPacket) == 0) {
+        if (video && video->isPlay && avPacket->stream_index == video->index) {
+            video->enQueue(avPacket);
+        } else if (audio && audio->isPlay && avPacket->stream_index == audio->index) {
+            audio->enQueue(avPacket);
+        }
+
+        //销毁内存
+        av_packet_unref(avPacket);
+    }
+    isPlay = 0;
+    if (video && video->isPlay) {
+        video->stop();
+    }
+    if (audio && audio->isPlay) {
+        audio->stop();
+    }
+
+
+
+    //释放缓存
+    avformat_free_context(pFormatCtx);
+    av_free_packet(avPacket);
+}
+pthread_t  p_tid;
+JNIEXPORT void JNICALL play_sync_net(JNIEnv *env, jobject instance, jstring path_) {
+    path = env->GetStringUTFChars(path_, 0);
+    video = new FFmpegVedio();
+    audio = new FFmpegAudio();
+    pthread_create(&p_tid, NULL, process, NULL);
+    env->ReleaseStringUTFChars(path_, path);
+}
+
+
+JNIEXPORT void JNICALL display_sync_net(JNIEnv *env, jobject instance, jobject surface) {
+}
+JNIEXPORT void JNICALL stop_sync_net(JNIEnv *env, jobject instance) {
+
+}
+JNIEXPORT void JNICALL release_sync_net(JNIEnv *env, jobject instance) {
+
+}
+
+
+
+/////////////////////////////////////////////////////////////////音视频同步代码//////////////////////////////////////////////////
+
+
 
 static const JNINativeMethod gMethods[] = {
         {
@@ -431,6 +530,18 @@ static const JNINativeMethod gMethods[] = {
         },
         {
                 "stop","()V",(void*)shutdown
+        },
+        {
+                "playSyncNet","(Ljava/lang/String;)V",(void*)play_sync_net
+        },
+        {
+                "dispalySync","(Landroid/view/Surface;)V",(void*)display_sync_net
+        },
+        {
+                "stopSync","()V",(void*)stop_sync_net
+        },
+        {
+                "releaseSync","()V",(void*)release_sync_net
         }
 
 };

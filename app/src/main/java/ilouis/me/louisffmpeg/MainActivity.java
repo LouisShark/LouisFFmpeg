@@ -52,4 +52,10 @@ public class MainActivity extends AppCompatActivity {
             videoView.sound1();
         }
     }
+
+
+    public void playNet(View view) {
+        videoView.playSyncNet("rtmp://live.hkstv.hk.lxdns.com/live/hks");
+
+    }
 }

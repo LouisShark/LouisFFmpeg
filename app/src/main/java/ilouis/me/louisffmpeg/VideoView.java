@@ -91,4 +91,12 @@ public class VideoView extends SurfaceView {
 
     public native void sound1();
     public native void stop();
+
+    public native void playSyncNet(String path);
+
+    public native void dispalySync(Surface surface);
+
+    public native void stopSync();
+
+    public native void releaseSync();
 }

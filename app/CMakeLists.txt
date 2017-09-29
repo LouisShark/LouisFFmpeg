@@ -18,6 +18,8 @@ add_library( # Sets the name of the library.
              SHARED
 
              # Provides a relative path to your source file(s).
+             src/main/cpp/FFmpegAudio.cpp
+             src/main/cpp/FFmpegVideo.cpp
              src/main/cpp/ffmpegL.cpp
              src/main/cpp/FFMpeg.cpp)
 
