@@ -49,6 +49,14 @@
         android:text="音视频同步播放网络"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
+        android:layout_above="@+id/stop_network"
         android:layout_alignParentStart="true" />
+    <Button
+        android:id="@+id/stop_network"
+        android:onClick="stopNet"
+        android:text="暂停音视频同步"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"/>
 </RelativeLayout>

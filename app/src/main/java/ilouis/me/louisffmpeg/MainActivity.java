@@ -55,7 +55,12 @@ public class MainActivity extends AppCompatActivity {
 
 
     public void playNet(View view) {
+        File file = new File(Environment.getExternalStorageDirectory(), "Warcraft3_End.avi");
         videoView.playSyncNet("rtmp://live.hkstv.hk.lxdns.com/live/hks");
+//        videoView.playSyncNet(file.getAbsolutePath());
+    }
 
+    public void stopNet(View view) {
+        videoView.releaseSync();
     }
 }

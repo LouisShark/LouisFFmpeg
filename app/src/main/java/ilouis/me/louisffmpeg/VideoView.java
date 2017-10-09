@@ -15,7 +15,7 @@ import android.view.SurfaceView;
  * this is on ilouis.me.louisffmpeg.
  */
 
-public class VideoView extends SurfaceView {
+public class VideoView extends SurfaceView implements SurfaceHolder.Callback {
     // Used to load the 'native-lib' library on application startup.
     static {
         System.loadLibrary("avcodec-56");
@@ -48,7 +48,7 @@ public class VideoView extends SurfaceView {
         mSurfaceHolder = getHolder();
         mSurfaceHolder.setFormat(PixelFormat.RGBA_8888);
         //注册回调方法
-//        mSurfaceHolder.addCallback(this);
+        mSurfaceHolder.addCallback(this);
         setFocusable(true);
         setKeepScreenOn(true);
         setFocusableInTouchMode(true);
@@ -96,7 +96,20 @@ public class VideoView extends SurfaceView {
 
     public native void dispalySync(Surface surface);
 
-    public native void stopSync();
-
     public native void releaseSync();
+
+    @Override
+    public void surfaceCreated(SurfaceHolder surfaceHolder) {
+
+    }
+
+    @Override
+    public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i1, int i2) {
+        dispalySync(surfaceHolder.getSurface());
+    }
+
+    @Override
+    public void surfaceDestroyed(SurfaceHolder surfaceHolder) {
+
+    }
 }
