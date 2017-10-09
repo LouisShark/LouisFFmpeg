@@ -58,7 +58,7 @@ extern "C" {
 //        return;
 //    }
 //    //分配内存
-//    AVPacket *packet = (AVPacket *) av_malloc(sizeof(AVPacket));
+//    AVPacket *packet = (AVPacket *) av_mallocz(sizeof(AVPacket));
 //    //初始化结构体
 //    av_init_packet(packet);
 //    AVFrame *avFrame = av_frame_alloc();
@@ -66,7 +66,7 @@ extern "C" {
 //    //在声明一个YUVframe
 //    AVFrame *yuvFrame = av_frame_alloc();
 //    //初始化缓冲区
-//    uint8_t *out_bufftr = (uint8_t *) av_malloc(
+//    uint8_t *out_bufftr = (uint8_t *) av_mallocz(
 //            avpicture_get_size(AV_PIX_FMT_YUV420P, pCodeContext->width, pCodeContext->height));
 //    //填充缓冲区
 //    avpicture_fill((AVPicture *) yuvFrame, out_bufftr, AV_PIX_FMT_YUV420P, pCodeContext->width,
@@ -143,7 +143,7 @@ JNIEXPORT void JNICALL startPlaying(JNIEnv *env, jobject jobj, jstring input_str
     }
 //        return;
 
-    AVPacket *packet = (AVPacket *) av_malloc(sizeof(AVPacket));
+    AVPacket *packet = (AVPacket *) av_mallocz(sizeof(AVPacket));
     av_init_packet(packet);
     //像素数据
     AVFrame *frame;
@@ -155,7 +155,7 @@ JNIEXPORT void JNICALL startPlaying(JNIEnv *env, jobject jobj, jstring input_str
     //给缓冲区分配内存
     //只有指定了AVFrame的像素格式丶画面大小才能真正分配内存
     //缓冲区分配内存
-    uint8_t *out_buffer = (uint8_t *) av_malloc(avpicture_get_size(AV_PIX_FMT_RGBA, pCodeCtx->width, pCodeCtx->height));
+    uint8_t *out_buffer = (uint8_t *) av_mallocz(avpicture_get_size(AV_PIX_FMT_RGBA, pCodeCtx->width, pCodeCtx->height));
     LOGE("width : %d, height: %d ", pCodeCtx->width, pCodeCtx->height);
 
     //设置RGBAframe的缓冲区，像素格式
@@ -243,7 +243,7 @@ JNIEXPORT void JNICALL startMusic(JNIEnv *env, jobject jobj, jstring input_str, 
     if (avcodec_open2(pCodeCtx, pCodec, NULL) <0) {
         return;
     }
-    AVPacket *packet = (AVPacket *) av_malloc(sizeof(AVPacket));
+    AVPacket *packet = (AVPacket *) av_mallocz(sizeof(AVPacket));
     AVFrame *frame;
     frame = av_frame_alloc();
 
@@ -251,7 +251,7 @@ JNIEXPORT void JNICALL startMusic(JNIEnv *env, jobject jobj, jstring input_str, 
 
     int length = 0;
     int got_frame;
-    uint8_t *out_buffer = (uint8_t *) av_malloc(44100 * 2);
+    uint8_t *out_buffer = (uint8_t *) av_mallocz(44100 * 2);
 
     uint64_t out_ch_layout = AV_CH_LAYOUT_STEREO;
 
@@ -485,7 +485,7 @@ void *process(void* args) {
 //    解码packet
 
     //编码数据
-    AVPacket *packet = (AVPacket *)av_malloc(sizeof(AVPacket));
+    AVPacket *packet = (AVPacket *)av_mallocz(sizeof(AVPacket));
 //    解码完整个视频 子线程
     int ret;
     while (isPlay ) {

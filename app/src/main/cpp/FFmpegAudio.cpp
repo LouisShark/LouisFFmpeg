@@ -16,7 +16,7 @@ int getPcm(FFmpegAudio *audio){
     int frameCount=0;
     int got_frame;
     int size;
-    AVPacket *packet = (AVPacket *) av_malloc(sizeof(AVPacket));
+    AVPacket *packet = (AVPacket *) av_mallocz(sizeof(AVPacket));
     AVFrame *frame = av_frame_alloc();
     while (audio->isPlay) {
 
@@ -65,7 +65,7 @@ int createFFmpeg(FFmpegAudio *audio){
     int length=0;
     int got_frame;
 //    44100*2
-    audio->out_buffer = (uint8_t *) av_malloc(44100 * 2);
+    audio->out_buffer = (uint8_t *) av_mallocz(44100 * 2);
     uint64_t  out_ch_layout=AV_CH_LAYOUT_STEREO;
 //    输出采样位数  16位
     enum AVSampleFormat out_formart=AV_SAMPLE_FMT_S16;

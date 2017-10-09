@@ -105,7 +105,9 @@ public class VideoView extends SurfaceView implements SurfaceHolder.Callback {
 
     @Override
     public void surfaceChanged(SurfaceHolder surfaceHolder, int i, int i1, int i2) {
-        dispalySync(surfaceHolder.getSurface());
+        if (surfaceHolder != null) {
+            dispalySync(surfaceHolder.getSurface());
+        }
     }
 
     @Override

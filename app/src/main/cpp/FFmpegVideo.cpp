@@ -32,7 +32,7 @@ int FFmpegVedio::get(AVPacket *packet) {
 }
 
 int FFmpegVedio::put(AVPacket *packet) {
-    AVPacket *packet1 = (AVPacket *) av_malloc(sizeof(AVPacket));
+    AVPacket *packet1 = (AVPacket *) av_mallocz(sizeof(AVPacket));
 
     if (av_copy_packet(packet1, packet)) {
         LOGE("克隆失败");
@@ -70,7 +70,7 @@ void *play_vedio(void *arg){
     int len ,got_frame, framecount = 0;
     LOGE("宽  %d ,高  %d ",vedio->codec->width,vedio->codec->height);
     //编码数据
-    AVPacket *packet = (AVPacket *)av_malloc(sizeof(AVPacket));
+    AVPacket *packet = (AVPacket *)av_mallocz(sizeof(AVPacket));
     //6.一阵一阵读取压缩的视频数据AVPacket
     double  last_play  //上一帧的播放时间
     ,play             //当前帧的播放时间
