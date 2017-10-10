@@ -3,8 +3,10 @@ package ilouis.me.louisffmpeg;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
+import android.text.TextUtils;
 import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.EditText;
 import android.widget.Spinner;
 
 import java.io.File;
@@ -14,6 +16,7 @@ public class MainActivity extends AppCompatActivity {
     VideoView videoView;
     private Spinner sp_video;
     private boolean isClick = false;
+    private EditText rtmpAddr;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,6 +31,7 @@ public class MainActivity extends AppCompatActivity {
                 android.R.layout.simple_list_item_1,
                 android.R.id.text1, videoArray);
         sp_video.setAdapter(adapter);
+        rtmpAddr = (EditText) findViewById(R.id.rtmp_addr);
     }
 
 
@@ -53,10 +57,23 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onPause() {
+        super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        videoView.releaseSync();
+    }
 
     public void playNet(View view) {
         File file = new File(Environment.getExternalStorageDirectory(), "Warcraft3_End.avi");
-        videoView.playSyncNet("rtmp://live.hkstv.hk.lxdns.com/live/hks");
+        if (!TextUtils.isEmpty(rtmpAddr.getText().toString())) {
+//            videoView.playSyncNet("rtmp://live.hkstv.hk.lxdns.com/live/hks");
+            videoView.playSyncNet(rtmpAddr.getText().toString().trim());
+        }
 //        videoView.playSyncNet(file.getAbsolutePath());
     }
 

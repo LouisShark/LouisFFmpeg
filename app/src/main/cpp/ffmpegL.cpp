@@ -439,6 +439,7 @@ void *process(void* args) {
     //2.打开输入视频文件
     if(avformat_open_input(&pFormatCtx,path,NULL,NULL) != 0){
         LOGE("%s","打开输入视频文件失败");
+        return (void *) 1;
     }
     //3.获取视频信息
     if(avformat_find_stream_info(pFormatCtx,NULL) < 0){

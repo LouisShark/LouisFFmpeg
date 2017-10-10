@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">LouisFFmpeg</string>
     <string name="start_music">播放音乐</string>
+    <string name="enter_address">请输入流媒体地址</string>
     <string-array name="video_list">
         <item>input.mp4</item>
         <item>Titanic.mkv</item>
